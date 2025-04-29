@@ -272,26 +272,33 @@ model Warehouse {
 }
 
 model Event {
-  id           String        @id @default(cuid())
-  name         String
-  date         DateTime
-  location     String
-  organizer    String
-  venueId      String        // Añadido el campo venueId que faltaba
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  companyEvents CompanyEvent[]
-  venue         Venue          @relation(fields: [venueId], references: [id])
-  eventStocks   EventStock[]
-  expenses      Expense[]
-  incomes       Income[]
-  socioEvents   SocioEvent[]
-  transactions  Transaction[]
-  worksheets    Worksheet[]
-  venueEvents   VenueEvent[]
-  companies     Company[]      @relation("EventCompanies")
+  id                String              @id @default(cuid())
+  name              String
+  description       String?
+  startDate         DateTime
+  endDate           DateTime
+  status            EventStatus         @default(DRAFT)
+  type              EventType
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  companyEvents     CompanyEvent[]
+  socioEvents       SocioEvent[]
+  venueEvents       VenueEvent[]
+  movements         EventMovement[]
+  companies         Company[]           @relation("EventCompanies")
+  venues            Venue[]
+  incomes           Income[]
+  expenses          Expense[]
+  eventStocks       EventStock[]
+  worksheets        Worksheet[]
+  transactions      Transaction[]
 
-  @@index([venueId])
+  @@index([name])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status])
+  @@index([type])
+  @@map("events")
 }
 
 model Category {
@@ -560,15 +567,15 @@ model DebtSettlement {
 
 model Transaction {
   id                String                    @id @default(cuid())
-  fecha             DateTime
-  tipo              TransactionType
-  categoria         TransactionCategory
-  subcategoria      String
-  detalle           String
-  cantidad          Float
-  montoUnitario     Float
-  montoTotal        Float
-  moneda            Currency
+  date              DateTime
+  type              TransactionType
+  category          TransactionCategory
+  subcategory       String
+  detail            String
+  quantity          Float
+  unitAmount        Float
+  totalAmount       Float
+  currency          Currency
   eventId           String
   actorId           String
   actorType         String
@@ -577,7 +584,7 @@ model Transaction {
   updatedAt         DateTime                  @updatedAt
   businessPartner   BusinessPartner?          @relation(fields: [businessPartnerId], references: [id])
   event             Event                     @relation(fields: [eventId], references: [id])
-  distribucion      TransactionDistribution[]
+  distributions     TransactionDistribution[]
 
   @@index([eventId])
   @@index([actorId])
@@ -589,8 +596,8 @@ model TransactionDistribution {
   transactionId String
   actorId       String
   actorType     String
-  porcentaje    Float?
-  monto         Float?
+  percentage    Float?
+  amount        Float?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   transaction   Transaction @relation(fields: [transactionId], references: [id])
@@ -612,10 +619,11 @@ model User {
 }
 
 enum EventStatus {
-  PENDING
-  ACTIVE
-  CANCELLED
+  DRAFT
+  PLANNED
+  IN_PROGRESS
   COMPLETED
+  CANCELLED
 }
 
 enum Currency {
@@ -639,6 +647,7 @@ enum Currency {
 }
 
 enum EventType {
+  CONCERT
   RESIDENCIA
   CACHET
   PRIVATE_EVENT
@@ -706,4 +715,19 @@ enum TransactionCategory {
   LICENSES
   EQUIPMENT
   OTHER
+}
+
+model EventMovement {
+  id          String   @id @default(cuid())
+  eventId     String
+  type        String   // 'INCOME' or 'EXPENSE'
+  amount      Float
+  description String
+  date        DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  event       Event    @relation(fields: [eventId], references: [id])
+
+  @@index([eventId])
+  @@map("event_movements")
 }

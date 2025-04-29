@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 
 export async function GET(
   request: Request,
@@ -7,38 +7,41 @@ export async function GET(
 ) {
   try {
     const event = await prisma.event.findUnique({
-      where: { id: params.eventId },
+      where: {
+        id: params.eventId,
+      },
       include: {
         companyEvents: {
           include: {
-            company: true
-          }
+            company: true,
+          },
         },
         socioEvents: {
           include: {
-            socio: true
-          }
+            socio: true,
+          },
         },
         venueEvents: {
           include: {
-            venue: true
-          }
-        }
-      }
+            venue: true,
+          },
+        },
+        movements: true,
+      },
     })
 
     if (!event) {
       return NextResponse.json(
-        { error: 'Evento no encontrado' },
+        { error: 'Event not found' },
         { status: 404 }
       )
     }
 
     return NextResponse.json(event)
   } catch (error) {
-    console.error('Error al obtener el evento:', error)
+    console.error('Error getting event:', error)
     return NextResponse.json(
-      { error: 'Error al obtener el evento' },
+      { error: 'Error getting event' },
       { status: 500 }
     )
   }
@@ -50,42 +53,27 @@ export async function PUT(
 ) {
   try {
     const body = await request.json()
-    const { name, description, startDate, endDate, status, type } = body
+    const { name, description, startDate, endDate, type, status } = body
 
     const event = await prisma.event.update({
-      where: { id: params.eventId },
+      where: {
+        id: params.eventId,
+      },
       data: {
         name,
         description,
-        startDate,
-        endDate,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        type,
         status,
-        type
       },
-      include: {
-        companyEvents: {
-          include: {
-            company: true
-          }
-        },
-        socioEvents: {
-          include: {
-            socio: true
-          }
-        },
-        venueEvents: {
-          include: {
-            venue: true
-          }
-        }
-      }
     })
 
     return NextResponse.json(event)
   } catch (error) {
-    console.error('Error al actualizar el evento:', error)
+    console.error('Error updating event:', error)
     return NextResponse.json(
-      { error: `Error al actualizar el evento: ${error.message}` },
+      { error: 'Error updating event' },
       { status: 500 }
     )
   }
@@ -97,14 +85,16 @@ export async function DELETE(
 ) {
   try {
     await prisma.event.delete({
-      where: { id: params.eventId }
+      where: {
+        id: params.eventId,
+      },
     })
 
-    return NextResponse.json({ message: 'Evento eliminado correctamente' })
+    return NextResponse.json({ message: 'Event deleted successfully' })
   } catch (error) {
-    console.error('Error al eliminar el evento:', error)
+    console.error('Error deleting event:', error)
     return NextResponse.json(
-      { error: `Error al eliminar el evento: ${error.message}` },
+      { error: 'Error deleting event' },
       { status: 500 }
     )
   }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 interface CompanyEventFormData {
@@ -11,7 +11,11 @@ interface CompanyEventFormData {
   notes?: string
 }
 
-export default function NewCompanyEventPage({ params }: { params: { eventId: string } }) {
+export default function EditCompanyEventPage({ 
+  params 
+}: { 
+  params: { id: string, companyEventId: string } 
+}) {
   const router = useRouter()
   const [formData, setFormData] = useState<CompanyEventFormData>({
     companyId: '',
@@ -23,14 +27,37 @@ export default function NewCompanyEventPage({ params }: { params: { eventId: str
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    const fetchCompanyEvent = async () => {
+      try {
+        const response = await fetch(`/api/company-events/${params.id}/${params.companyEventId}`)
+        if (!response.ok) {
+          throw new Error('Error al cargar el company event')
+        }
+        const data = await response.json()
+        setFormData({
+          companyId: data.companyId,
+          incomeAmount: data.incomeAmount,
+          expenseAmount: data.expenseAmount,
+          currency: data.currency,
+          notes: data.notes || ''
+        })
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error desconocido')
+      }
+    }
+
+    fetchCompanyEvent()
+  }, [params.id, params.companyEventId])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
     try {
-      const response = await fetch(`/api/company-events/${params.eventId}`, {
-        method: 'POST',
+      const response = await fetch(`/api/company-events/${params.id}/${params.companyEventId}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -38,10 +65,10 @@ export default function NewCompanyEventPage({ params }: { params: { eventId: str
       })
 
       if (!response.ok) {
-        throw new Error('Error al crear el company event')
+        throw new Error('Error al actualizar el company event')
       }
 
-      router.push(`/events/${params.eventId}`)
+      router.push(`/events/${params.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
@@ -53,7 +80,7 @@ export default function NewCompanyEventPage({ params }: { params: { eventId: str
     <div className="container mx-auto px-4 py-8">
       <div className="bg-white shadow-md rounded-lg overflow-hidden">
         <div className="p-6">
-          <h1 className="text-2xl font-bold mb-6">Nueva Empresa Participante</h1>
+          <h1 className="text-2xl font-bold mb-6">Editar Empresa Participante</h1>
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
