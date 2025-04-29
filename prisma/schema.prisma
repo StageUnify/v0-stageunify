@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
 }
 
@@ -19,6 +19,9 @@ model Company {
   country                   String
   email                     String?                    @unique
   phone                     String?
+  description               String?
+  type                      String                     @default("COMPANY")
+  status                    String                     @default("ACTIVE")
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
   companyEvents             CompanyEvent[]
@@ -31,6 +34,7 @@ model Company {
   vendorInvoices            VendorInvoice[]            @relation("CompanyVendorInvoices")
   warehouses                Warehouse[]                @relation("CompanyWarehouses")
   events                    Event[]                    @relation("EventCompanies")
+  worksheets                Worksheet[]
 
   @@index([name])
   @@index([email])
@@ -46,6 +50,9 @@ model Venue {
   territory                 String
   capacity                  Int
   cuit                      String?                    @unique
+  description               String?
+  type                      String                     @default("VENUE")
+  status                    String                     @default("ACTIVE")
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
   entityInvoices            EntityInvoice[]            @relation("VenueEntityInvoices")
@@ -58,6 +65,7 @@ model Venue {
   vendorInvoices            VendorInvoice[]            @relation("VenueVendorInvoices")
   warehouses                Warehouse[]                @relation("VenueWarehouses")
   venueEvents               VenueEvent[]
+  worksheets                Worksheet[]
 
   @@map("venues")
 }
@@ -74,6 +82,9 @@ model Socio {
   country                   String
   email                     String?                    @unique
   phone                     String?
+  description               String?
+  type                      String                     @default("SOCIO")
+  status                    String                     @default("ACTIVE")
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
   entityInvoices            EntityInvoice[]            @relation("SocioEntityInvoices")
@@ -85,6 +96,8 @@ model Socio {
   stockExpenseDistributions StockExpenseDistribution[] @relation("SocioStockExpenseDistributions")
   vendorInvoices            VendorInvoice[]            @relation("SocioVendorInvoices")
   warehouses                Warehouse[]                @relation("SocioWarehouses")
+  events                    Event[]
+  worksheets                Worksheet[]
 
   @@index([name])
   @@index([email])
@@ -94,25 +107,18 @@ model Socio {
 model BusinessPartner {
   id                        String                     @id @default(cuid())
   name                      String
-  type                      String
-  email                     String?                    @unique
-  phone                     String?
-  address                   String?
-  notes                     String?
+  description               String?
+  type                      String                     @default("PROVIDER")
+  status                    String                     @default("ACTIVE")
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
+  stockMovements            StockMovement[]
+  stockExpenseDistributions StockExpenseDistribution[] @relation("BusinessPartnerStockExpenseDistributions")
+  vendorInvoices            VendorInvoice[]            @relation("BusinessPartnerVendorInvoices")
   entityInvoices            EntityInvoice[]            @relation("BusinessPartnerEntityInvoices")
   expenseDistributions      ExpenseDistribution[]      @relation("BusinessPartnerExpenseDistributions")
   incomeDistributions       IncomeDistribution[]       @relation("BusinessPartnerIncomeDistributions")
-  stockExpenseDistributions StockExpenseDistribution[] @relation("BusinessPartnerStockExpenseDistributions")
-  transactions              Transaction[]
-  vendorInvoices            VendorInvoice[]            @relation("BusinessPartnerVendorInvoices")
   warehouses                Warehouse[]                @relation("BusinessPartnerWarehouses")
-
-  @@index([name])
-  @@index([email])
-  @@index([type])
-  @@map("business_partners")
 }
 
 model VenueEvent {
@@ -272,67 +278,70 @@ model Warehouse {
 }
 
 model Event {
-  id                String              @id @default(cuid())
-  name              String
-  description       String?
-  startDate         DateTime
-  endDate           DateTime
-  status            EventStatus         @default(DRAFT)
-  type              EventType
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  companyEvents     CompanyEvent[]
-  socioEvents       SocioEvent[]
-  venueEvents       VenueEvent[]
-  movements         EventMovement[]
-  companies         Company[]           @relation("EventCompanies")
-  venues            Venue[]
-  incomes           Income[]
-  expenses          Expense[]
-  eventStocks       EventStock[]
-  worksheets        Worksheet[]
-  transactions      Transaction[]
+  id             String          @id @default(cuid())
+  name           String
+  description    String?
+  type           String          @default("EVENT")
+  status         String          @default("ACTIVE")
+  startDate      DateTime
+  endDate        DateTime
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  companyId      String?
+  venueId        String?
+  socioId        String?
+  company        Company?        @relation("EventCompanies", fields: [companyId], references: [id])
+  venue          Venue?          @relation(fields: [venueId], references: [id])
+  socio          Socio?          @relation(fields: [socioId], references: [id])
+  worksheets     Worksheet[]
+  incomes        Income[]
+  expenses       Expense[]
+  stockMovements StockMovement[]
+  venueEvents    VenueEvent[]
+  companyEvents  CompanyEvent[]
+  socioEvents    SocioEvent[]
+  EventStock     EventStock[]
+  EventMovement  EventMovement[]
 
-  @@index([name])
-  @@index([startDate])
-  @@index([endDate])
-  @@index([status])
-  @@index([type])
-  @@map("events")
+  @@index([companyId])
+  @@index([venueId])
+  @@index([socioId])
 }
 
 model Category {
-  id            String            @id @default(cuid())
-  name          String
-  description   String?
-  type          TransactionType
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  expenses      Expense[]
-  incomes       Income[]
-  invoices      InvoiceCategory[]
-  subcategories Subcategory[]
+  id              String            @id @default(cuid())
+  name            String
+  type            String
+  description     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  incomes         Income[]
+  expenses        Expense[]
+  subcategories   Subcategory[]
+  InvoiceCategory InvoiceCategory[]
 
   @@unique([name, type])
   @@index([type])
+  @@map("category")
 }
 
 model Subcategory {
-  id          String               @id @default(cuid())
-  name        String
-  description String?
-  categoryId  String
-  type        TransactionType
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  expenses    Expense[]
-  incomes     Income[]
-  invoices    InvoiceSubcategory[]
-  category    Category             @relation(fields: [categoryId], references: [id])
+  id                 String               @id @default(cuid())
+  name               String
+  type               String
+  description        String?
+  categoryId         String
+  category           Category             @relation(fields: [categoryId], references: [id])
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  incomes            Income[]
+  expenses           Expense[]
+  InvoiceSubcategory InvoiceSubcategory[]
 
   @@unique([name, categoryId])
-  @@index([type])
   @@index([categoryId])
+  @@index([type])
+  @@map("subcategory")
 }
 
 model Invoice {
@@ -370,7 +379,7 @@ model Income {
   quantity          Float
   unitPrice         Float
   amount            Float
-  currency          Currency             @default(USD)
+  currency          String               @default("USD")
   date              DateTime
   description       String?
   companyReceiverId String?
@@ -382,12 +391,13 @@ model Income {
   subcategoryId     String?
   eventId           String?
   category          Category?            @relation(fields: [categoryId], references: [id])
-  receivedByCompany Company?             @relation("CompanyReceivedIncome", fields: [companyReceiverId], references: [id])
-  event             Event?               @relation(fields: [eventId], references: [id])
-  receivedBySocio   Socio?               @relation("SocioReceivedIncome", fields: [socioReceiverId], references: [id])
   subcategory       Subcategory?         @relation(fields: [subcategoryId], references: [id])
-  receivedByVenue   Venue?               @relation("VenueReceivedIncome", fields: [venueReceiverId], references: [id])
+  event             Event?               @relation(fields: [eventId], references: [id])
+  companyReceiver   Company?             @relation("CompanyReceivedIncome", fields: [companyReceiverId], references: [id])
+  venueReceiver     Venue?               @relation("VenueReceivedIncome", fields: [venueReceiverId], references: [id])
+  socioReceiver     Socio?               @relation("SocioReceivedIncome", fields: [socioReceiverId], references: [id])
   distributions     IncomeDistribution[]
+  stockMovements    StockMovement[]
 
   @@index([categoryId])
   @@index([subcategoryId])
@@ -398,30 +408,31 @@ model Income {
 }
 
 model Expense {
-  id             String                @id @default(cuid())
-  quantity       Float
-  unitPrice      Float
-  amount         Float
-  currency       Currency              @default(USD)
-  date           DateTime
-  description    String?
-  companyPayerId String?
-  venuePayerId   String?
-  socioPayerId   String?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  categoryId     String?
-  subcategoryId  String?
-  eventId        String?
-  eventStocks    EventStock?
-  category       Category?             @relation(fields: [categoryId], references: [id])
-  paidByCompany  Company?              @relation("CompanyPaidExpense", fields: [companyPayerId], references: [id])
-  event          Event?                @relation(fields: [eventId], references: [id])
-  paidBySocio    Socio?                @relation("SocioPaidExpense", fields: [socioPayerId], references: [id])
-  subcategory    Subcategory?          @relation(fields: [subcategoryId], references: [id])
-  paidByVenue    Venue?                @relation("VenuePaidExpense", fields: [venuePayerId], references: [id])
-  distributions  ExpenseDistribution[]
-  consumptions   WorksheetConsumption?
+  id                   String                @id @default(cuid())
+  quantity             Float
+  unitPrice            Float
+  amount               Float
+  currency             String                @default("USD")
+  date                 DateTime
+  description          String?
+  companyPayerId       String?
+  venuePayerId         String?
+  socioPayerId         String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  categoryId           String?
+  subcategoryId        String?
+  eventId              String?
+  category             Category?             @relation(fields: [categoryId], references: [id])
+  subcategory          Subcategory?          @relation(fields: [subcategoryId], references: [id])
+  event                Event?                @relation(fields: [eventId], references: [id])
+  companyPayer         Company?              @relation("CompanyPaidExpense", fields: [companyPayerId], references: [id])
+  venuePayer           Venue?                @relation("VenuePaidExpense", fields: [venuePayerId], references: [id])
+  socioPayer           Socio?                @relation("SocioPaidExpense", fields: [socioPayerId], references: [id])
+  distributions        ExpenseDistribution[]
+  stockMovements       StockMovement[]
+  EventStock           EventStock?
+  WorksheetConsumption WorksheetConsumption?
 
   @@index([categoryId])
   @@index([subcategoryId])
@@ -459,22 +470,33 @@ model Stock {
 }
 
 model StockMovement {
-  id                  String                @id @default(cuid())
-  type                String
-  quantity            Float
-  unitCost            Float
-  totalCost           Float
-  currency            Currency              @default(USD)
-  previousAverageCost Float
-  newAverageCost      Float
-  stockId             String
-  eventStockId        String?
-  consumptionId       String?               @unique
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  consumption         WorksheetConsumption? @relation("StockMovementConsumption", fields: [consumptionId], references: [id])
-  eventStock          EventStock?           @relation(fields: [eventStockId], references: [id])
-  stock               Stock                 @relation(fields: [stockId], references: [id])
+  id                    String                 @id @default(cuid())
+  type                  String                 @default("STOCK_MOVEMENT")
+  status                String                 @default("ACTIVE")
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  eventId               String?
+  worksheetId           String?
+  incomeId              String?
+  expenseId             String?
+  stockMovementId       String?
+  event                 Event?                 @relation(fields: [eventId], references: [id])
+  worksheet             Worksheet?             @relation(fields: [worksheetId], references: [id])
+  income                Income?                @relation(fields: [incomeId], references: [id])
+  expense               Expense?               @relation(fields: [expenseId], references: [id])
+  worksheetConsumptions WorksheetConsumption[] @relation("StockMovementConsumption")
+  BusinessPartner       BusinessPartner?       @relation(fields: [businessPartnerId], references: [id])
+  businessPartnerId     String?
+  Stock                 Stock?                 @relation(fields: [stockId], references: [id])
+  stockId               String?
+  EventStock            EventStock?            @relation(fields: [eventStockId], references: [id])
+  eventStockId          String?
+
+  @@index([eventId])
+  @@index([worksheetId])
+  @@index([incomeId])
+  @@index([expenseId])
+  @@index([stockMovementId])
 }
 
 model EventStock {
@@ -496,52 +518,79 @@ model EventStock {
 }
 
 model Worksheet {
-  id           String                 @id @default(cuid())
-  date         DateTime
-  eventId      String
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
-  event        Event                  @relation(fields: [eventId], references: [id])
-  consumptions WorksheetConsumption[]
+  id                   String                 @id @default(cuid())
+  name                 String
+  description          String?
+  type                 String                 @default("WORKSHEET")
+  status               String                 @default("ACTIVE")
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  eventId              String?
+  companyId            String?
+  venueId              String?
+  socioId              String?
+  event                Event?                 @relation(fields: [eventId], references: [id])
+  company              Company?               @relation(fields: [companyId], references: [id])
+  venue                Venue?                 @relation(fields: [venueId], references: [id])
+  socio                Socio?                 @relation(fields: [socioId], references: [id])
+  stockMovements       StockMovement[]
+  WorksheetConsumption WorksheetConsumption[]
+
+  @@index([eventId])
+  @@index([companyId])
+  @@index([venueId])
+  @@index([socioId])
 }
 
 model WorksheetConsumption {
-  id            String                     @id @default(cuid())
-  quantity      Float
-  unitCost      Float
-  totalCost     Float
-  currency      Currency                   @default(USD)
-  worksheetId   String
-  eventStockId  String
-  expenseId     String?                    @unique
-  createdAt     DateTime                   @default(now())
-  updatedAt     DateTime                   @updatedAt
-  distributions StockExpenseDistribution[]
-  stockMovement StockMovement?             @relation("StockMovementConsumption")
-  eventStock    EventStock                 @relation(fields: [eventStockId], references: [id])
-  expense       Expense?                   @relation(fields: [expenseId], references: [id])
-  worksheet     Worksheet                  @relation(fields: [worksheetId], references: [id])
+  id              String                     @id @default(cuid())
+  quantity        Float
+  unitCost        Float
+  totalCost       Float
+  currency        Currency                   @default(USD)
+  worksheetId     String
+  eventStockId    String
+  expenseId       String?                    @unique
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  distributions   StockExpenseDistribution[]
+  stockMovement   StockMovement?             @relation("StockMovementConsumption", fields: [stockMovementId], references: [id])
+  eventStock      EventStock                 @relation(fields: [eventStockId], references: [id])
+  expense         Expense?                   @relation(fields: [expenseId], references: [id])
+  worksheet       Worksheet                  @relation(fields: [worksheetId], references: [id])
+  stockMovementId String?
 }
 
 model StockExpenseDistribution {
-  id                String               @id @default(cuid())
-  amount            Float
-  consumptionId     String
-  companyId         String?
-  venueId           String?
-  socioId           String?
-  businessPartnerId String?
-  venueEventId      String?
-  companyEventId    String?
-  socioEventId      String?
-  businessPartner   BusinessPartner?     @relation("BusinessPartnerStockExpenseDistributions", fields: [businessPartnerId], references: [id])
-  companyEvent      CompanyEvent?        @relation("CompanyEventStockExpenseDistributions", fields: [companyEventId], references: [id])
-  company           Company?             @relation("CompanyStockExpenseDistributions", fields: [companyId], references: [id])
-  consumption       WorksheetConsumption @relation(fields: [consumptionId], references: [id])
-  socioEvent        SocioEvent?          @relation("SocioEventStockExpenseDistributions", fields: [socioEventId], references: [id])
-  socio             Socio?               @relation("SocioStockExpenseDistributions", fields: [socioId], references: [id])
-  venueEvent        VenueEvent?          @relation("VenueEventStockExpenseDistributions", fields: [venueEventId], references: [id])
-  venue             Venue?               @relation("VenueStockExpenseDistributions", fields: [venueId], references: [id])
+  id                     String                @id @default(cuid())
+  type                   String                @default("STOCK_EXPENSE_DISTRIBUTION")
+  status                 String                @default("ACTIVE")
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  businessPartnerId      String
+  companyId              String?
+  venueId                String?
+  socioId                String?
+  venueEventId           String?
+  companyEventId         String?
+  socioEventId           String?
+  businessPartner        BusinessPartner       @relation("BusinessPartnerStockExpenseDistributions", fields: [businessPartnerId], references: [id])
+  company                Company?              @relation("CompanyStockExpenseDistributions", fields: [companyId], references: [id])
+  venue                  Venue?                @relation("VenueStockExpenseDistributions", fields: [venueId], references: [id])
+  socio                  Socio?                @relation("SocioStockExpenseDistributions", fields: [socioId], references: [id])
+  venueEvent             VenueEvent?           @relation("VenueEventStockExpenseDistributions", fields: [venueEventId], references: [id])
+  companyEvent           CompanyEvent?         @relation("CompanyEventStockExpenseDistributions", fields: [companyEventId], references: [id])
+  socioEvent             SocioEvent?           @relation("SocioEventStockExpenseDistributions", fields: [socioEventId], references: [id])
+  WorksheetConsumption   WorksheetConsumption? @relation(fields: [worksheetConsumptionId], references: [id])
+  worksheetConsumptionId String?
+
+  @@index([businessPartnerId])
+  @@index([companyId])
+  @@index([venueId])
+  @@index([socioId])
+  @@index([venueEventId])
+  @@index([companyEventId])
+  @@index([socioEventId])
 }
 
 model DebtSettlement {
@@ -565,45 +614,19 @@ model DebtSettlement {
   @@index([creditorType, creditorId])
 }
 
-model Transaction {
-  id                String                    @id @default(cuid())
-  date              DateTime
-  type              TransactionType
-  category          TransactionCategory
-  subcategory       String
-  detail            String
-  quantity          Float
-  unitAmount        Float
-  totalAmount       Float
-  currency          Currency
-  eventId           String
-  actorId           String
-  actorType         String
-  businessPartnerId String?
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime                  @updatedAt
-  businessPartner   BusinessPartner?          @relation(fields: [businessPartnerId], references: [id])
-  event             Event                     @relation(fields: [eventId], references: [id])
-  distributions     TransactionDistribution[]
+model EventMovement {
+  id          String   @id @default(cuid())
+  eventId     String
+  type        String // 'INCOME' or 'EXPENSE'
+  amount      Float
+  description String
+  date        DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  event       Event    @relation(fields: [eventId], references: [id])
 
   @@index([eventId])
-  @@index([actorId])
-  @@index([businessPartnerId])
-}
-
-model TransactionDistribution {
-  id            String      @id @default(cuid())
-  transactionId String
-  actorId       String
-  actorType     String
-  percentage    Float?
-  amount        Float?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
-
-  @@index([transactionId])
-  @@index([actorId])
+  @@map("event_movements")
 }
 
 model User {
@@ -616,14 +639,6 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   @@map("users")
-}
-
-enum EventStatus {
-  DRAFT
-  PLANNED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
 }
 
 enum Currency {
@@ -644,17 +659,6 @@ enum Currency {
   PYG
   CNY
   JPY
-}
-
-enum EventType {
-  CONCERT
-  RESIDENCIA
-  CACHET
-  PRIVATE_EVENT
-  FESTIVAL
-  AFTER_PARTY
-  COMERCIAL
-  PR_EVENT
 }
 
 enum ConsumptionMethod {
@@ -679,55 +683,7 @@ enum VenueRole {
   NEUTRAL
 }
 
-enum TransactionType {
-  INCOME_EVENT
-  INCOME_SPONSORSHIP
-  INCOME_MERCHANDISING
-  INCOME_PR_EVENT
-  EVENT_COS
-  SPONSORSHIP_COS
-  PR_EVENT_COS
-}
-
-enum TransactionStatus {
-  PENDING
-  COMPLETED
-  CANCELLED
-  PARTIALLY_PAID
-}
-
 enum PaymentRole {
   PAYER
   RECEIVER
-}
-
-enum TransactionCategory {
-  TICKET_SALES
-  BAR_SALES
-  SPONSORSHIP
-  RENTAL
-  PRODUCTION
-  TALENT
-  STAFF
-  MARKETING
-  LOGISTICS
-  INSURANCE
-  LICENSES
-  EQUIPMENT
-  OTHER
-}
-
-model EventMovement {
-  id          String   @id @default(cuid())
-  eventId     String
-  type        String   // 'INCOME' or 'EXPENSE'
-  amount      Float
-  description String
-  date        DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  event       Event    @relation(fields: [eventId], references: [id])
-
-  @@index([eventId])
-  @@map("event_movements")
 }
